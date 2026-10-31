@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["**/*.ts", "**/*.tsx", "**/*.mts"],
+  "exclude": ["node_modules", "dist", "examples", ".next", ".vinext", ".sites-runtime"],
+  "compilerOptions": { "incremental": false }
+}

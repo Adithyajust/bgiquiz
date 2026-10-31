@@ -1,0 +1,143 @@
+{
+  "name": "Patch Koreksi Penilaian BGI",
+  "requires": "BGI Quiz Next.js SQL Server dengan tabel terpisah",
+  "validation": {
+    "tests_passed": 114,
+    "typecheck": "passed",
+    "next_build": "passed",
+    "live_sqlserver_tested": false,
+    "interactive_browser_tested": false
+  },
+  "files": [
+    {
+      "path": "components/core.tsx",
+      "sha256": "80859aa335cbfc9fde05a6b2c416f2dc4b9d69c2f6840e7e1c9d25dfa95dafad",
+      "bytes": 15711
+    },
+    {
+      "path": "components/screens.tsx",
+      "sha256": "7f4b50adb4647a08156821fc28e49a1d878c4f1ef82b3e7e0ab9105fbfce1456",
+      "bytes": 40753
+    },
+    {
+      "path": "components/host-settings.tsx",
+      "sha256": "8fe9e7c11b931e6226881e61f81e4f998848aab2675632f0dc3cad5b5a161588",
+      "bytes": 9177
+    },
+    {
+      "path": "components/result-corrections.tsx",
+      "sha256": "ec7db96cb74708844a1c58c2e288f54c489f9326e368b1ff38ab713218933644",
+      "bytes": 9757
+    },
+    {
+      "path": "components/quiz-app.tsx",
+      "sha256": "39cf32f44a95f34a04a19ff20ed1faa7cbfb01edbf95a058fc8e55710eb10e24",
+      "bytes": 760
+    },
+    {
+      "path": "components/quiz-client.tsx",
+      "sha256": "851ef3751cdded1e2f38a0a4a05780242864a806a489a047a43680b3765de21f",
+      "bytes": 4001
+    },
+    {
+      "path": "lib/engine.ts",
+      "sha256": "b9ae3170f255f0b28510a6a30011cfd756455b565fedf3f3bfe454b3cf597fc4",
+      "bytes": 21137
+    },
+    {
+      "path": "lib/seed.ts",
+      "sha256": "2ac66f1531f3508153f8c93c2843c74a618c4e708e5316eec8fcfd2fdb0a60c1",
+      "bytes": 5419
+    },
+    {
+      "path": "lib/relational-quiz.ts",
+      "sha256": "a4e7f6dc7415ca541c8f8d914eb1702d7b606aef07c7fb5f98ded38565ae106d",
+      "bytes": 10911
+    },
+    {
+      "path": "lib/store.ts",
+      "sha256": "191c142cfb18e2546ac4a09f2a4ddd306ee26b5f086f42eafef8c686704c7a8e",
+      "bytes": 4089
+    },
+    {
+      "path": "scripts/sqlserver-db.mjs",
+      "sha256": "1ba49da8dc61d828abf30527e256300e1f1728b1e11b12af0e57f0a2bd03682b",
+      "bytes": 3987
+    },
+    {
+      "path": "sql/sqlserver/001_schema.sql",
+      "sha256": "cef5a0981d6acea94321ea328122c7de5325ed276585326c0844931613befb9f",
+      "bytes": 1745
+    },
+    {
+      "path": "sql/sqlserver/002_relational_schema.sql",
+      "sha256": "8c388a23de6adf2c97f5d2caf929cfde72c46a9df8f39b1c56cce160fc627420",
+      "bytes": 9153
+    },
+    {
+      "path": "sql/sqlserver/005_event_answer_settings.sql",
+      "sha256": "1d281957fcf37cd629d935bafc45cdb8df041991653236e5bae1ee7d99f726ef",
+      "bytes": 968
+    },
+    {
+      "path": "sql/sqlserver/006_result_corrections.sql",
+      "sha256": "8123189c0e496e33bac5fe1755be6be3e1e582254eb158f5b9c577e148c9085c",
+      "bytes": 1158
+    },
+    {
+      "path": "app/layout.tsx",
+      "sha256": "114e3b93bf1f729ea2e5a9a55b257d585174e4af201455a5a8a54c12a04468de",
+      "bytes": 607
+    },
+    {
+      "path": "public/styles/arena-reference.css",
+      "sha256": "cd58ae968c598f61b68858ab879044334063222a479c7dfefd99ab406491073a",
+      "bytes": 15694
+    },
+    {
+      "path": "PANDUAN_KOREKSI_PENILAIAN.md",
+      "sha256": "7f45b37b14f7abcb45a53924ee57b24e9bdcec77491395cb4cd1f8e819b5a5df",
+      "bytes": 6200
+    },
+    {
+      "path": "tests/answer-title.mjs",
+      "sha256": "f8ec27b8a8fee7fa2680bf7fbd8a74ef9db2a0719d26f760364be99793f84bec",
+      "bytes": 7930
+    },
+    {
+      "path": "tests/arena-answer-api.mjs",
+      "sha256": "97e1aaf064c54e342850315d208c82f561d280d5810d66dc68e07613f2950b51",
+      "bytes": 3523
+    },
+    {
+      "path": "tests/batches.mjs",
+      "sha256": "906311be53bdd9f21db1d9d23cbdd02e253ed075d65cd61368d87247e739bdc4",
+      "bytes": 16382
+    },
+    {
+      "path": "tests/host-settings.mjs",
+      "sha256": "7c501a4ebded6628e027c0e72959c1ac231b0f947b1b8add6477b825853333c1",
+      "bytes": 12808
+    },
+    {
+      "path": "tests/mssql.mjs",
+      "sha256": "d6789ca0e68642ed76c6b6853be1900aabe1d12d0efaa4b38a1fea5d28668303",
+      "bytes": 24095
+    },
+    {
+      "path": "tests/result-corrections.mjs",
+      "sha256": "a155617a6de0cf703e66b1450664be555b4054b7b7213f9d5a220630b27f1b80",
+      "bytes": 11114
+    },
+    {
+      "path": "tests/run.mjs",
+      "sha256": "a364f60b760e5e54598d7b61da003916572ee62b4a381845659c09b2554e6d4c",
+      "bytes": 18306
+    },
+    {
+      "path": "docs/Buku_Panduan_Host_BGI_Quiz_Koreksi.docx",
+      "sha256": "e8e5b95b07745567e4e1ee20d3d0a81cd283b211465c1e4a90edb2adaaebaf3f",
+      "bytes": 51203
+    }
+  ]
+}

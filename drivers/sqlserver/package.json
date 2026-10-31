@@ -1,0 +1,7 @@
+{
+  "name": "bgi-quiz-sqlserver-driver",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": { "mssql": "12.7.4" }
+}

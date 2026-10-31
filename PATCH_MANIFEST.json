@@ -1,0 +1,45 @@
+{
+  "package_version": "2026.10.21-host4",
+  "quiz_document_version": 3,
+  "apply_to": "Existing BGI Quiz Next.js project root containing package.json",
+  "instructions": "PANDUAN_BATCH_REGULER.md",
+  "preserve": [
+    ".env.local",
+    "pnpm-workspace.yaml",
+    "SQL Server database"
+  ],
+  "new_dependencies": false,
+  "new_sql_tables": false,
+  "checks": {
+    "nextjs_build": "passed",
+    "typescript": "passed",
+    "git_diff_check": "passed",
+    "source_tests_passed": 66,
+    "dynamic_combinations_tested": 9,
+    "manual_pages_rendered_and_visually_reviewed": 11,
+    "sql_server_adapter_tests": "mock driver; real SQL Server connection not available",
+    "browser_public_stage_visual_check": "passed in managed cloud Chrome at 1363x936; enlarged circular avatars fit with names scores and buzzer status",
+    "browser_host_interactive_check": "not performed; preview requires organizer sign-in",
+    "browser_fullscreen_check": "cloud HTTP preview disallows fullscreen; existing F11 fallback shown",
+    "browser_windows_visual_check": "not performed; validate on event devices"
+  },
+  "sha256": {
+    "app/globals.css": "adbde134c58e771c21f09a932c889a665785f9a30b83216659494346adcfaab5",
+    "app/layout.tsx": "1431c578b98f60fe79151afd123c05ba646c9541f49a17129c8c9e9ad219fb0c",
+    "components/core.tsx": "864cdf65b460dde428c69a990272801f1acd73c1cf49bb589e1b95650e88f661",
+    "components/screens.tsx": "4c98bbf207cd4318ea6075dd5009831e59b92997cfcb052b1a9474db2a410d87",
+    "components/host-settings.tsx": "f038a1399585f72cf4d0109f2a14bcaa913d5c12ea123bdf68c8abdaaa75c837",
+    "lib/engine.ts": "419d28c2ab6e8d7be4e3425d01e3587d3ceff45838672fb8df5f0f916e67e319",
+    "lib/seed.ts": "1fb74400807e23f9b7a7465c6f8cdc4099b175236b786e61a82efde1c0063fb4",
+    "lib/store.ts": "a874605ccea4ee4da172a0098b3b5075db0d7b6605bb3dde7c667c0f6708cebf",
+    "lib/migrations.ts": "4becb5c1754ae0bf6a5a4aa68344f1eb8cc925f1f04d4358610c7d265648fddf",
+    "public/styles/bgi-quiz.css": "755bcebd3bc58693c13a99f8b8c04f96ee31392a1da6bd4ed34388f2759b694c",
+    "tests/run.mjs": "01c5e3e08058dc252d48b9022d61598ed5d4ca95da22153f7c5ef7eb88250ed5",
+    "tests/batches.mjs": "ebdcde646fcc81ce335f115c979595cf07bd06f1107e75aab80b4329ec235835",
+    "tests/host-settings.mjs": "7c501a4ebded6628e027c0e72959c1ac231b0f947b1b8add6477b825853333c1",
+    "README.md": "a2d41e0219139d36366efca01d47a2645a2ee75b186fdf4fd657637302cd51c7",
+    "SQLSERVER_SETUP.md": "08567d23a46890c831ed024dc7d26b4d113d9fe9d5607640385653026f6fc75b",
+    "PANDUAN_BATCH_REGULER.md": "7b33a679d0bfc7b638085a71959828fe9afd65a9de2471f68bcf3f2223414ec0",
+    "docs/Panduan_Penggunaan_BGI_Quiz_SQLServer.docx": "3c6a5bdbf3cfd75fc0172428a9abc7c8e95766e5133f176d260113986245eb47"
+  }
+}

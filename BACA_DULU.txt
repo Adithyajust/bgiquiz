@@ -1,0 +1,22 @@
+PEMBARUAN SOAL DAN JAWABAN PADA BUZZER PESERTA
+
+Halaman buzzer grup A, B, dan C kini menampilkan soal dan jawaban sesuai Arena.
+
+ATURAN
+- Sebelum host menekan Mulai: isi soal dan blok jawaban belum tampil.
+- Setelah Mulai: soal aktif dan pilihan jawaban tampil.
+- Buka jawaban di Arena: blok jawaban benar tampil di Arena dan buzzer.
+- Sembunyikan jawaban: blok jawaban benar kembali tersembunyi.
+- Benar atau Salah: status jawaban tetap mengikuti pilihan Buka/Sembunyikan.
+- Soal berikutnya: soal dan jawaban menunggu host menekan Mulai lagi.
+
+CARA MEMASANG
+1. Hentikan aplikasi dengan Ctrl+C.
+2. Ekstrak ZIP ke folder sementara.
+3. Salin folder app, components, lib, public, dan tests ke folder proyek yang berisi package.json.
+4. Gabungkan folder dan timpa berkas dengan nama yang sama.
+5. Jalankan kembali aplikasi dengan perintah yang biasa Anda pakai.
+6. Tekan Ctrl+F5 pada Host, Arena, serta perangkat buzzer peserta.
+
+Pembaruan ini mencakup audio sebelumnya dan tidak memerlukan migrasi database.
+Panduan lengkap: PANDUAN_SOAL_JAWABAN_BUZZER.md
