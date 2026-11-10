@@ -18,6 +18,7 @@ writeFileSync(`${output}/audio-controls.mjs`,ts.transpileModule(readFileSync('co
 const {AudioControls}=await load('audio-controls');
 const {QuizAudioPlayback,BUZZER_AUDIO_URL,VERDICT_AUDIO_URLS}=await load('buzzer-audio'),{applyAction,publicQuiz}=await load('engine'),{seedQuiz}=await load('seed');
 let serial=0;const act=(q,a,now=1000)=>applyAction(q,a,now,`audio-${++serial}`);
+const ordinaryRegular=()=>act(act(seedQuiz(),{type:'selectRound',roundId:'reguler-b'}),{type:'selectTeam',teamId:'A'});
 function fixture(){
  const state={plays:0,pauses:0,errors:0,created:0,reject:false,sources:[]};
  const clip={src:'',currentTime:9,pause(){state.pauses++;},async play(){state.plays++;state.sources.push(this.src);if(state.reject)throw new Error('Playback blocked');}};
@@ -84,7 +85,7 @@ test('correct and wrong verdicts use the exact uploaded MP3 assets',()=>{
  }
 });
 for(const correct of [true,false])test(`accepted ${correct?'correct':'wrong'} host judgement plays its MP3 once on the Arena snapshot`,async()=>{
- const {player,state}=fixture();let q=act(seedQuiz(),{type:'selectTeam',teamId:'A'});q=act(q,{type:'start'});await player.observe(publicQuiz(q).game,true);assert.equal(state.plays,0);
+ const {player,state}=fixture();let q=ordinaryRegular();q=act(q,{type:'start'});await player.observe(publicQuiz(q).game,true);assert.equal(state.plays,0);
  q=act(q,{type:'judge',correct});await player.observe(publicQuiz(q).game,true);
  for(let i=0;i<5;i++)await player.observe(structuredClone(publicQuiz(q).game),true);
  assert.deepEqual(state.sources,[VERDICT_AUDIO_URLS[correct?'correct':'wrong']]);assert.equal(q.teams[0].score,correct?10:0);
@@ -99,12 +100,12 @@ test('the next question can play the same verdict again',async()=>{
  assert.deepEqual(state.sources,[VERDICT_AUDIO_URLS.correct,VERDICT_AUDIO_URLS.correct]);assert.equal(state.created,1);
 });
 test('a current-result correction switches the verdict sound and does not repeat on polling',async()=>{
- const {player,state}=fixture();let q=act(seedQuiz(),{type:'selectTeam',teamId:'A'});q=act(q,{type:'start'});q=act(q,{type:'judge',correct:false});await player.observe(q.game,true);
+ const {player,state}=fixture();let q=ordinaryRegular();q=act(q,{type:'start'});q=act(q,{type:'judge',correct:false});await player.observe(q.game,true);
  q=act(q,{type:'correctResult',resultId:q.results[0].id,correct:true,expectedCorrect:false,expectedPoints:0,expectedCorrectionCount:0,reason:'Host salah menekan tombol.'});
  await player.observe(q.game,true);await player.observe(structuredClone(q.game),true);assert.deepEqual(state.sources,[VERDICT_AUDIO_URLS.wrong,VERDICT_AUDIO_URLS.correct]);
 });
 test('a delayed snapshot with both a buzzer and verdict prioritizes the verdict',async()=>{
- const {player,state}=fixture();let q=act(seedQuiz(),{type:'selectTeam',teamId:'A'});q=act(q,{type:'start'});await player.observe(q.game,true);q=act(q,{type:'buzz',teamId:'A',epoch:q.game.epoch});q=act(q,{type:'judge',correct:false});
+ const {player,state}=fixture();let q=ordinaryRegular();q=act(q,{type:'start'});await player.observe(q.game,true);q=act(q,{type:'buzz',teamId:'A',epoch:q.game.epoch});q=act(q,{type:'judge',correct:false});
  await player.observe(q.game,true);assert.deepEqual(state.sources,[VERDICT_AUDIO_URLS.wrong]);assert.equal(state.created,1);
 });
 test('a verdict interrupts the buzzer on the same media element and mute stops it',async()=>{

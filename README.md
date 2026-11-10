@@ -51,6 +51,20 @@ Binding `DB` tercantum dalam `.openai/hosting.json`. Migrasi dalam `drizzle/` me
 - Server menolak soal dengan pertanyaan atau jawaban kosong. Soal pilihan ganda memerlukan minimal dua pilihan yang berbeda dan jawaban yang sesuai salah satu pilihan.
 - Instalasi baru menyertakan 40 soal contoh, terdiri dari 10 per batch reguler dan 10 rebutan. Tinjau isi serta kesetaraan kesulitan sebelum acara.
 
+### Rebutan lemparan di babak reguler
+
+| Batch | Grup utama | Buzzer saat lemparan |
+| --- | --- | --- |
+| 1 | A | B dan C |
+| 2 | B | C dan A |
+| 3 | C | A dan B |
+
+Di Kontrol Kuis, pilih batch dan grup utama sesuai tabel. Untuk sesi 15 soal, isi soal bernomor 1–15 dan atur **Jumlah soal** menjadi 15 di Bank Soal. Pengaturan jumlah soal dan bank soal yang sudah tersimpan tetap digunakan.
+
+Saat grup utama salah atau tidak menjawab, klik **Salah / Tidak terjawab**. Soal yang sama tetap tampil dan buzzer kedua grup lain terbuka. Konfirmasi salah satu grup pada **Urutan buzzer** untuk memulai timer jawab. Jika jawabannya benar, grup tersebut mendapat nilai soal. Setelah penilaian lemparan, atau setelah host memilih **Lewati lemparan** jika buzzer belum ditekan, lanjutkan ke soal berikutnya. Progres tercatat untuk grup utama dan grup lain mendapat satu giliran menjawab melalui buzzer.
+
+Pembaruan ini memakai fase dan tabel penyimpanan yang sudah ada, sehingga pemasangannya cukup dengan mengganti source aplikasi. Pasang di antara dua soal agar semua perangkat memuat versi yang sama sebelum lemparan berikutnya.
+
 ## Penyimpanan SQL dan konkurensi
 
 Pada SQL Server, `quiz_rooms` menyimpan metadata ruang dan nomor revisi. Data operasional berada pada tabel `quiz_settings`, `quiz_teams`, `quiz_team_scores`, `quiz_rounds`, `quiz_questions`, `quiz_question_options`, `quiz_game_state`, `quiz_progress`, `quiz_buzzes`, dan `quiz_results`. `quiz_events` menyimpan audit, `quiz_owners` menyimpan identitas penyelenggara, dan `quiz_legacy_snapshots` menyimpan JSON sebelum migrasi. Jalur pratinjau SQLite tetap memakai snapshot JSON semula.

@@ -19,6 +19,9 @@ export const DEFAULT_EVENT_NAME = "Quiz Night";
 export const MAX_EVENT_NAME_LENGTH = 60;
 export function eventName(q: Pick<Quiz, "eventName">) { return q.eventName?.trim() || DEFAULT_EVENT_NAME; }
 export function batchNumber(r: Round) { return r.batchNumber ?? (r.batchTeam ? teamIds.indexOf(r.batchTeam) + 1 : 0); }
+export function regularReboundOwner(r: Round): TeamId | undefined {
+  return r.type === "reguler" ? teamIds[batchNumber(r) - 1] : undefined;
+}
 export function regularBatches(q: Quiz) { return q.rounds.filter(r => r.type === "reguler").sort((a,b) => a.order - b.order); }
 export function competitionProgress(q: Quiz) {
   const rounds = [...q.rounds].sort((a,b) => a.order - b.order).map(r => {
@@ -49,6 +52,16 @@ export function batchDeleteReason(q: Quiz, r: Round) {
 }
 export function currentRound(q: Quiz) { return q.rounds.find(r => r.id === q.game.roundId)!; }
 export function currentQuestion(q: Quiz) { return currentRound(q)?.questions[q.game.index]; }
+// The regular turn uses openedAt only once its question is passed to the other groups.
+export function isRegularRebound(q: Quiz) {
+  return currentRound(q)?.type === "reguler" && typeof q.game.openedAt === "number";
+}
+export function isBuzzerReady(q: Quiz, teamId: TeamId) {
+  const g = q.game;
+  if (isRegularRebound(q)) return g.phase === "buzzing" && teamId !== g.selectedTeam;
+  if (currentRound(q).type === "rebutan") return g.phase === "buzzing";
+  return g.phase === "answering" && teamId === g.selectedTeam;
+}
 // Use the same display rules for Arena and participant devices.
 export function questionView(q: Quiz, preview = false) {
   const finished = q.game.phase === "finished";
@@ -57,7 +70,22 @@ export function questionView(q: Quiz, preview = false) {
 }
 export function pointsFor(r: Round, q: Question) { return r.scoringMode === "round" ? r.points : q.points; }
 export function durationFor(r: Round, q: Question) { return q?.duration ?? r.duration; }
-function resultId(q: Quiz, question: Question) { const g = q.game, r = currentRound(q); return `${g.sessionId}:${r.id}:${r.type === "reguler" ? g.activeTeam : "all"}:${question.id}`; }
+const REBOUND_RESULT_PREFIX = "rebound-";
+function resultId(q: Quiz, question: Question, slot?: TeamId) {
+  const g = q.game, r = currentRound(q);
+  const regularSlot = isRegularRebound(q) ? `${REBOUND_RESULT_PREFIX}${g.selectedTeam}` : g.activeTeam;
+  const attempt = slot ?? (r.type === "reguler" ? regularSlot : "all");
+  return `${g.sessionId}:${r.id}:${attempt}:${question.id}`;
+}
+function pairedResult(q: Quiz, result: Result) {
+  const prefix = `${q.game.sessionId}:${result.roundId}:`;
+  if (!result.roundId || !result.id.startsWith(prefix)) return undefined;
+  const attempt = result.id.slice(prefix.length);
+  const paired = attempt.startsWith(REBOUND_RESULT_PREFIX)
+    ? attempt.slice(REBOUND_RESULT_PREFIX.length)
+    : REBOUND_RESULT_PREFIX + attempt;
+  return q.results.find(other => other.id === prefix + paired);
+}
 export function currentResult(q: Quiz) { const question = currentQuestion(q); return question && q.game.activeTeam ? q.results.find(x => x.id === resultId(q, question)) : undefined; }
 // Legacy wrong answers did not retain their original value. Ask the host to
 // confirm it instead of silently using a question bank that may have changed.
@@ -94,9 +122,21 @@ function uniqueBatchName(q: Quiz, name: string, exceptId?: string) {
 }
 function progressKey(r: Round, t: TeamId | null) { return r.type === "reguler" ? `${r.id}:${t}` : r.id; }
 function resetQuestion(g: Game, epoch: string, phase: Phase = "ready") { Object.assign(g, { phase, activeTeam: null, deadline: null, remaining: null, openedAt: null, epoch, buzzes: [], feedback: null, answerVisible: false }); }
+function openBuzzer(g: Game, epoch: string, now: number) {
+  resetQuestion(g, epoch, "buzzing");
+  g.openedAt = now;
+}
+function finishQuestion(g: Game, r: Round, correct: boolean, now: number) {
+  g.progress[progressKey(r, g.selectedTeam)] = g.index + 1;
+  g.remaining = g.deadline !== null ? Math.max(0, g.deadline - now) : g.remaining;
+  g.feedback = correct ? "correct" : "wrong";
+  g.phase = "judged";
+  g.deadline = null;
+}
 export function applyAction(source: Quiz, a: Action, now: number, uid: string): Quiz {
   const q: Quiz = structuredClone(source), g = q.game;
   const r = currentRound(q), question = currentQuestion(q);
+  const rebound = isRegularRebound(q), buzzerRound = r?.type === "rebutan" || rebound;
   const quiet = ["ready", "judged", "finished"].includes(g.phase);
   switch (a.type) {
     case "declareChampion": {
@@ -154,18 +194,19 @@ export function applyAction(source: Quiz, a: Action, now: number, uid: string): 
       assert(g.phase === "ready", "Soal sudah dimulai."); ensureRoundReady(r); assert(question, "Soal belum tersedia.");
       g.answerVisible = false;
       if (r.type === "reguler") { assert(g.selectedTeam, "Pilih grup yang bermain terlebih dahulu."); g.activeTeam = g.selectedTeam; g.phase = "answering"; g.deadline = now + durationFor(r, question) * 1000; }
-      else { g.phase = "buzzing"; g.openedAt = now; g.epoch = uid; g.buzzes = []; }
+      else openBuzzer(g, uid, now);
       break;
     }
     case "buzz": {
       assert(teamIds.includes(a.teamId as TeamId), "Grup tidak valid."); assert(a.epoch === g.epoch, "Buzzer ini berasal dari soal sebelumnya. Tunggu sinkronisasi.");
-      if (r.type === "reguler") {
+      if (!buzzerRound) {
         assert(g.selectedTeam === a.teamId, "Hanya grup terpilih yang dapat menjawab.");
         if (g.phase === "answering" && g.buzzes.some(b => b.teamId === a.teamId)) return q;
         assert(g.phase === "answering", "Buzzer belum aktif. Tunggu host memulai soal."); ensureRoundReady(r);
         g.activeTeam = g.selectedTeam; g.phase = "answering"; g.deadline ??= now + durationFor(r, question) * 1000;
         g.buzzes = [{ id: uid, teamId: a.teamId as TeamId, receivedAt: now, elapsed: 0 }];
       } else {
+        assert(!rebound || a.teamId !== g.selectedTeam, "Buzzer grup utama terkunci selama lemparan.");
         assert(g.phase === "buzzing" || g.phase === "review", "Buzzer terkunci. Tunggu soal berikutnya.");
         if (g.buzzes.some(b => b.teamId === a.teamId)) return q;
         assert(g.phase === "buzzing" || now - g.buzzes[0].receivedAt <= 250, "Buzzer sudah terkunci oleh grup lain.");
@@ -175,27 +216,35 @@ export function applyAction(source: Quiz, a: Action, now: number, uid: string): 
       break;
     }
     case "confirmBuzz": {
-      assert(g.phase === "review" && r.type === "rebutan", "Tidak ada urutan buzzer yang perlu dikonfirmasi.");
+      assert(g.phase === "review" && buzzerRound, "Tidak ada urutan buzzer yang perlu dikonfirmasi.");
       assert(g.buzzes.some(b => b.teamId === a.teamId), "Grup ini tidak tercatat dalam urutan buzzer.");
       g.activeTeam = a.teamId as TeamId; g.phase = "answering"; g.deadline = now + durationFor(r, question) * 1000; break;
     }
     case "reopen": {
-      assert(r.type === "rebutan" && ["review", "buzzing"].includes(g.phase), "Buzzer tidak dapat dibuka kembali pada tahap ini.");
-      g.phase = "buzzing"; g.buzzes = []; g.openedAt = now; g.epoch = uid; g.answerVisible = false; break;
+      assert(buzzerRound && ["review", "buzzing"].includes(g.phase), "Buzzer tidak dapat dibuka kembali pada tahap ini.");
+      openBuzzer(g, uid, now); break;
+    }
+    case "skipRegularRebound": {
+      assert(rebound && g.phase === "buzzing", "Lewati hanya saat buzzer lemparan terbuka dan belum ditekan.");
+      g.openedAt = null;
+      g.activeTeam = g.selectedTeam;
+      g.remaining = 0;
+      finishQuestion(g, r, false, now);
+      break;
     }
     case "pause": assert(g.phase === "answering" && g.deadline, "Timer belum berjalan."); g.remaining = Math.max(0, g.deadline - now); g.deadline = null; g.phase = "paused"; break;
     case "resume": assert(g.phase === "paused", "Timer tidak sedang dijeda."); g.deadline = now + (g.remaining ?? 0); g.phase = "answering"; g.remaining = null; break;
     case "judge": {
       assert(["answering", "paused"].includes(g.phase) && g.activeTeam, "Konfirmasi grup yang menjawab sebelum menilai."); assert(typeof a.correct === "boolean", "Penilaian tidak valid.");
-      assert(r.type !== "reguler" || g.selectedTeam === g.activeTeam, "Grup yang menjawab tidak sesuai pilihan pembawa acara.");
+      assert(r.type !== "reguler" || (rebound ? g.selectedTeam !== g.activeTeam : g.selectedTeam === g.activeTeam), "Grup yang menjawab tidak sesuai giliran.");
       const id = resultId(q, question);
       assert(!q.results.some(x => x.id === id), "Soal ini sudah mendapat penilaian.");
       const possiblePoints = pointsFor(r, question), points = a.correct ? possiblePoints : 0;
       q.teams.find(t => t.id === g.activeTeam)!.score += points;
       q.results.push({ id, roundId: r.id, teamId: g.activeTeam, question: question.text, round: r.name, correct: a.correct, points, possiblePoints, at: now });
-      g.progress[progressKey(r, g.selectedTeam)] = g.index + 1;
-      g.remaining = g.deadline !== null ? Math.max(0, g.deadline - now) : g.remaining;
-      g.feedback = a.correct ? "correct" : "wrong"; g.phase = "judged"; g.deadline = null; break;
+      if (!a.correct && !rebound && regularReboundOwner(r) === g.selectedTeam) openBuzzer(g, uid, now);
+      else finishQuestion(g, r, a.correct, now);
+      break;
     }
     case "correctResult": {
       const id = str(a.resultId, "Hasil penilaian", 400), result = q.results.find(x => x.id === id);
@@ -204,6 +253,11 @@ export function applyAction(source: Quiz, a: Action, now: number, uid: string): 
       if (a.expectedCorrect !== result.correct || a.expectedPoints !== result.points || a.expectedCorrectionCount !== (result.correction?.count ?? 0))
         throw new QuizError("Hasil penilaian sudah berubah. Tutup form dan buka kembali hasil terbaru sebelum mengoreksi.", 409);
       assert(a.correct !== result.correct, "Pilih hasil yang berbeda dari penilaian saat ini.");
+      if (a.correct) {
+        if (rebound && !quiet && question && g.selectedTeam)
+          assert(id !== resultId(q, question, g.selectedTeam), "Selesaikan atau lewati lemparan sebelum mengoreksi jawaban grup utama.");
+        assert(!pairedResult(q, result)?.correct, "Soal ini sudah tercatat benar pada giliran lain. Koreksi hasil itu terlebih dahulu.");
+      }
       const reason = str(a.reason, "Alasan koreksi", 500);
       const possiblePoints = int(resultPossiblePoints(result) ?? a.possiblePoints, "Nilai jawaban benar", 0, 1000);
       const nextPoints = a.correct ? possiblePoints : 0;

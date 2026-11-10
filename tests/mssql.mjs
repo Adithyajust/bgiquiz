@@ -150,7 +150,9 @@ test('SQL Server question deletion removes choices before parent and preserves o
  const q=seedQuiz(),h=fakeDriver({quiz:q});const after=alter(q,{type:'deleteQuestion',roundId:'reguler',questionId:q.rounds[0].questions[1].id});await h.repo.compareAndSwap(changeFor(after));assert.deepEqual(rowsToQuiz(h.state.rows),after);
 });
 test('SQL Server storage DDL contains every mapped table and matching columns',()=>{
- const ddl=readFileSync('sql/sqlserver/002_relational_schema.sql','utf8');for(const table of quizTables){const body=new RegExp(`CREATE TABLE dbo\\.${table.name} \\(([\\s\\S]*?)\\n        \\);`).exec(ddl)?.[1];assert.ok(body,table.name);for(const [column,type] of Object.entries(table.columns))assert.match(body,new RegExp(`\\b${column}\\s+${type.replace(/[()]/g,'\\$&')}`,'i'));}assert.match(ddl,/compatibility_level/);
+ const ddl=['002_relational_schema.sql','007_championship.sql','008_round_participation.sql']
+  .map(name=>readFileSync('sql/sqlserver/'+name,'utf8')).join('\n');
+ for(const table of quizTables){const body=new RegExp(`CREATE TABLE dbo\\.${table.name} \\(([\\s\\S]*?)\\n\\s*\\);`).exec(ddl)?.[1];assert.ok(body,table.name);for(const [column,type] of Object.entries(table.columns))assert.match(body,new RegExp(`\\b${column}\\s+${type.replace(/[()]/g,'\\$&')}`,'i'));}assert.match(ddl,/compatibility_level/);
 });
 const base={MSSQL_SERVER:'db.internal',MSSQL_DATABASE:'BGIQuiz',MSSQL_USER:'quiz_app',MSSQL_PASSWORD:'  keep spaces  '};
 test('SQL Server configuration keeps TLS verification on and preserves password',()=>{const c=sqlServerConfig(base);assert.equal(c.server,'db.internal');assert.equal(c.port,1433);assert.equal(c.options.encrypt,true);assert.equal(c.options.trustServerCertificate,false);assert.equal(c.password,base.MSSQL_PASSWORD);assert.equal(c.pool.max,10);});
@@ -225,9 +227,32 @@ test('SQL Server removes exclusion children before deleting a spare batch or res
 
 test('SQL Server Arena receives committed buzzer and verdict audio after host advances immediately',async()=>{
  let q=alter(seedQuiz(),{type:'selectTeam',teamId:'A'});q=alter(q,{type:'start'});const h=fakeDriver({quiz:q}),now=Date.now();
- await mutate(h.repo,{type:'buzz',teamId:'A',epoch:q.game.epoch},{admin:false,key:q.teams[0].key,id:'arena-buzz',now});await mutate(h.repo,{type:'judge',correct:false},{admin:true,id:'arena-wrong',now:now+1});await mutate(h.repo,{type:'next'},{admin:true,id:'arena-next',now:now+2});const safe=await snapshot(h.repo,false);
+ await mutate(h.repo,{type:'buzz',teamId:'A',epoch:q.game.epoch},{admin:false,key:q.teams[0].key,id:'arena-buzz',now});await mutate(h.repo,{type:'judge',correct:false},{admin:true,id:'arena-wrong',now:now+1});await mutate(h.repo,{type:'skipRegularRebound'},{admin:true,id:'arena-skip',now:now+2});await mutate(h.repo,{type:'next'},{admin:true,id:'arena-next',now:now+3});const safe=await snapshot(h.repo,false);
  assert.deepEqual(safe.audioCues.map(c=>c.type),['buzz','wrong']);assert.equal(safe.quiz.game.phase,'ready');assert.deepEqual(safe.quiz.game.buzzes,[]);assert.deepEqual(safe.quiz.results,[]);assert.ok(safe.quiz.teams.every(t=>!t.key));const query=h.queries.find(q=>q.text.startsWith('SELECT TOP (32)'));assert.ok(query);assert.equal(query.params.maxRevision.value,safe.revision);assert.ok(!query.text.includes('CREATE'));
 });
 test('SQL Server rejected or rolled back verdicts never publish an Arena audio cue',async()=>{
  let q=alter(seedQuiz(),{type:'selectTeam',teamId:'A'});q=alter(q,{type:'start'});const h=fakeDriver({quiz:q,failAudit:true});await assert.rejects(()=>mutate(h.repo,{type:'judge',correct:true},{admin:true,id:'failed-audio'}),/event failed/);assert.deepEqual((await snapshot(h.repo,false)).audioCues,[]);assert.equal(h.state.rows.quiz_team_scores[0].score,0);
+});
+
+test('SQL Server reload preserves a regular rebound and only the confirmed group scores', async () => {
+ const q=alter(alter(seedQuiz(),{type:'selectTeam',teamId:'A'}),{type:'start'});
+ const {repo}=fakeDriver({quiz:q});
+ const open=await mutate(repo,{type:'judge',correct:false},{admin:true,id:'open-rebound',now:2000});
+ const loaded=await loadQuiz(repo);
+ assert.equal(loaded.quiz.game.phase,'buzzing');
+ assert.equal(loaded.quiz.game.openedAt,2000);
+ assert.equal(loaded.quiz.game.epoch,open.quiz.game.epoch);
+ assert.equal(loaded.quiz.game.progress['reguler:A'],undefined);
+ const buzz={type:'buzz',teamId:'B',epoch:loaded.quiz.game.epoch};
+ await assert.rejects(()=>mutate(repo,buzz,{admin:false,key:q.teams[0].key}),e=>e.status===403);
+ await mutate(repo,buzz,{admin:false,key:q.teams[1].key,id:'buzzer-rebound',now:2100});
+ const confirm=await mutate(repo,{type:'confirmBuzz',teamId:'B'},{admin:true,id:'confirm-rebound',now:2500});
+ assert.equal(confirm.quiz.game.deadline,32500);
+ const options={admin:true,expectedRevision:confirm.revision,now:3000};
+ const verdicts=await Promise.allSettled(['result-a','result-b'].map(id=>mutate(repo,{type:'judge',correct:true},{...options,id})));
+ assert.equal(verdicts.filter(result=>result.status==='fulfilled').length,1);
+ const saved=(await loadQuiz(repo)).quiz;
+ assert.deepEqual(saved.teams.map(t=>t.score),[0,10,0]);
+ assert.deepEqual(saved.game.progress,{'reguler:A':1});
+ assert.deepEqual(saved.results.map(r=>[r.teamId,r.points]),[['A',0],['B',10]]);
 });

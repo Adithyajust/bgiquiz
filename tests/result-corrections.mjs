@@ -11,7 +11,7 @@ const {applyAction,currentResult,resultPossiblePoints}=await load('engine'),{see
 const {mutate,loadQuiz,snapshot}=await load('store'),{sqliteRepository}=await load('sqlite-repository'),{wrapSqlite}=await load('sqlite-adapter');
 let serial=0;
 const act=(q,a,now=1000)=>applyAction(q,a,now,`correction-${++serial}`);
-function judged(correct=false,points=10){let q=seedQuiz();q.rounds[0].points=points;q=act(q,{type:'selectTeam',teamId:'A'});q=act(q,{type:'start'});return act(q,{type:'judge',correct},2000);}
+function judged(correct=false,points=10){let q=seedQuiz();q.rounds[0].points=points;q=act(q,{type:'selectTeam',teamId:'A'});q=act(q,{type:'start'});q=act(q,{type:'judge',correct},2000);return correct?q:act(q,{type:'skipRegularRebound'},2100);}
 const correction=(r,correct=!r.correct,extra={})=>({type:'correctResult',resultId:r.id,correct,expectedCorrect:r.correct,expectedPoints:r.points,expectedCorrectionCount:r.correction?.count??0,reason:'Host salah menekan tombol penilaian.',...extra});
 function database(){const sql=new DatabaseSync(':memory:');sql.exec(readFileSync('drizzle/0000_hard_rachel_grey.sql','utf8'));return{sql,db:sqliteRepository(wrapSqlite(sql))};}
 
@@ -102,7 +102,7 @@ test('correction menu and prominent host link remain discoverable before any res
 });
 test('dedicated correction page lists older results inline beyond the five-row host summary',async()=>{
  const {CorrectionsScreen}=await load('result-corrections');let q=act(seedQuiz(),{type:'selectTeam',teamId:'A'});
- for(let i=0;i<6;i++){q=act(q,{type:'start'});q=act(q,{type:'judge',correct:false});if(i<5)q=act(q,{type:'next'});}
+ for(let i=0;i<6;i++){q=act(q,{type:'start'});q=act(q,{type:'judge',correct:false});q=act(q,{type:'skipRegularRebound'});if(i<5)q=act(q,{type:'next'});}
  const c={data:{quiz:q,revision:20,serverNow:1000,admin:true},online:true,busy:false,offset:{current:0},act:async()=>true,setNotice:()=>{},setError:()=>{},error:''};
  const html=renderToStaticMarkup(createElement(CorrectionsScreen,{c}));assert.ok(html.includes(q.results[0].question));assert.equal((html.match(/aria-label="Koreksi penilaian /g)||[]).length,6);assert.ok(html.includes('6 dari 6 hasil'));assert.ok(!html.includes('<dialog'));
 });
