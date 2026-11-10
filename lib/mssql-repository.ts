@@ -40,9 +40,19 @@ BEGIN
     IF ERROR_NUMBER() <> 2714 OR OBJECT_ID(N'dbo.quiz_round_exclusions', N'U') IS NULL THROW;
   END CATCH
 END;`;
+export const QUESTION_IMAGE_SCHEMA_SQL = `IF COL_LENGTH(N'dbo.quiz_questions', N'image') IS NULL
+BEGIN
+  BEGIN TRY
+    ALTER TABLE dbo.quiz_questions ADD image NVARCHAR(MAX) NULL;
+  END TRY
+  BEGIN CATCH
+    IF COL_LENGTH(N'dbo.quiz_questions', N'image') IS NULL THROW;
+  END CATCH
+END;`;
 export async function ensureChampionshipTable(pool: SqlPool, driver: SqlDriver) {
   await new driver.Request(pool).query(CHAMPIONSHIP_SCHEMA_SQL);
   await new driver.Request(pool).query(ROUND_EXCLUSIONS_SCHEMA_SQL);
+  await new driver.Request(pool).query(QUESTION_IMAGE_SCHEMA_SQL);
 }
 
 export function sqlServerRepository(pool: SqlPool, driver: SqlDriver): QuizRepository {

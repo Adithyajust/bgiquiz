@@ -21,6 +21,7 @@ try {
     await pool.request().batch(readFileSync(new URL('../sql/sqlserver/006_result_corrections.sql', import.meta.url), 'utf8'));
     await pool.request().batch(readFileSync(new URL('../sql/sqlserver/007_championship.sql', import.meta.url), 'utf8'));
     await pool.request().batch(readFileSync(new URL('../sql/sqlserver/008_round_participation.sql', import.meta.url), 'utf8'));
+    await pool.request().batch(readFileSync(new URL('../sql/sqlserver/009_question_image.sql', import.meta.url), 'utf8'));
     console.log('Skema relasional siap. Dokumen lama akan diarsipkan dan dipindahkan saat aplikasi pertama membaca kuis.');
   }
   const tables = ['quiz_rooms', 'quiz_events', 'quiz_owners', 'quiz_settings', 'quiz_teams', 'quiz_team_scores',
@@ -33,9 +34,10 @@ try {
       AND COL_LENGTH('dbo.quiz_results', 'possible_points') IS NOT NULL
       AND COL_LENGTH('dbo.quiz_results', 'correction_count') IS NOT NULL
       AND COL_LENGTH('dbo.quiz_results', 'corrected_at') IS NOT NULL
-      AND COL_LENGTH('dbo.quiz_results', 'correction_reason') IS NOT NULL THEN 1 ELSE 0 END AS schema_ready,
+      AND COL_LENGTH('dbo.quiz_results', 'correction_reason') IS NOT NULL
+      AND COL_LENGTH('dbo.quiz_questions', 'image') IS NOT NULL THEN 1 ELSE 0 END AS schema_ready,
     (SELECT compatibility_level FROM sys.databases WHERE name = DB_NAME()) AS compatibility_level`);
-  if (!result.recordset[0]?.schema_ready) throw new Error('Skema relasional belum lengkap. Jalankan pnpm db:init atau skrip 001, 002, 005, 006, 007, dan 008 melalui SSMS pada database kuis.');
+  if (!result.recordset[0]?.schema_ready) throw new Error('Skema relasional belum lengkap. Jalankan pnpm db:init atau skrip 001, 002, 005, 006, 007, 008, dan 009 melalui SSMS pada database kuis.');
   if (result.recordset[0].compatibility_level < 130) throw new Error('Database memerlukan compatibility level minimal 130.');
   const state = await pool.request().query('SELECT storage_version FROM dbo.quiz_rooms WHERE id = N\'main\'');
   if (state.recordset[0]?.storage_version === 1) console.log('Data lama terdeteksi. Jalankan aplikasi dan buka /host untuk melakukan migrasi atomik.');

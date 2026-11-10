@@ -79,6 +79,7 @@ BEGIN TRY
             points INT NOT NULL CHECK (points BETWEEN 0 AND 1000),
             duration INT NULL CHECK (duration BETWEEN 1 AND 600),
             notes NVARCHAR(2000) NOT NULL,
+            image NVARCHAR(MAX) NULL,
             sort_order INT NOT NULL CHECK (sort_order >= 0),
             PRIMARY KEY (room_id, round_id, id),
             FOREIGN KEY (room_id, round_id) REFERENCES dbo.quiz_rounds(room_id, id)

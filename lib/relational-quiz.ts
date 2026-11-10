@@ -11,7 +11,7 @@ export const quizTables: Table[] = [
   { name: "quiz_teams", keys: ["room_id", "id"], columns: { room_id: "nvarchar(40)", id: "nvarchar(1)", name: "nvarchar(40)", photo: "nvarchar(max)", buzzer_key: "nvarchar(128)", participants: "nvarchar(200)", sort_order: "int" } },
   { name: "quiz_team_scores", keys: ["room_id", "team_id"], columns: { room_id: "nvarchar(40)", team_id: "nvarchar(1)", score: "int" } },
   { name: "quiz_rounds", keys: ["room_id", "id"], columns: { room_id: "nvarchar(40)", id: "nvarchar(128)", type: "nvarchar(10)", batch_number: "int", batch_team: "nvarchar(1)", name: "nvarchar(80)", sort_order: "int", question_count: "int", duration: "int", points: "int", scoring_mode: "nvarchar(10)" } },
-  { name: "quiz_questions", keys: ["room_id", "round_id", "id"], columns: { room_id: "nvarchar(40)", round_id: "nvarchar(128)", id: "nvarchar(128)", number: "int", text: "nvarchar(2000)", answer: "nvarchar(1000)", category: "nvarchar(60)", points: "int", duration: "int", notes: "nvarchar(2000)", sort_order: "int" } },
+  { name: "quiz_questions", keys: ["room_id", "round_id", "id"], columns: { room_id: "nvarchar(40)", round_id: "nvarchar(128)", id: "nvarchar(128)", number: "int", text: "nvarchar(2000)", answer: "nvarchar(1000)", category: "nvarchar(60)", points: "int", duration: "int", notes: "nvarchar(2000)", image: "nvarchar(max)", sort_order: "int" } },
   { name: "quiz_question_options", keys: ["room_id", "round_id", "question_id", "option_index"], columns: { room_id: "nvarchar(40)", round_id: "nvarchar(128)", question_id: "nvarchar(128)", option_index: "int", text: "nvarchar(400)" } },
   { name: "quiz_game_state", keys: ["room_id"], columns: { room_id: "nvarchar(40)", round_id: "nvarchar(128)", question_index: "int", selected_team_id: "nvarchar(1)", active_team_id: "nvarchar(1)", phase: "nvarchar(12)", deadline: "bigint", remaining: "bigint", opened_at: "bigint", epoch: "nvarchar(128)", feedback: "nvarchar(7)", session_id: "nvarchar(128)", answer_visible: "bit" } },
   { name: "quiz_progress", keys: ["room_id", "progress_key"], columns: { room_id: "nvarchar(40)", progress_key: "nvarchar(260)", round_id: "nvarchar(128)", team_id: "nvarchar(1)", answered_count: "int" } },
@@ -34,7 +34,7 @@ export function quizToRows(q: Quiz, room = "main"): QuizRows {
   q.rounds.forEach(r => {
     rows.quiz_rounds.push({ room_id, id: r.id, type: r.type, batch_number: r.batchNumber ?? null, batch_team: r.batchTeam ?? null, name: r.name, sort_order: r.order, question_count: r.questionCount, duration: r.duration, points: r.points, scoring_mode: r.scoringMode });
     r.questions.forEach((v, sort_order) => {
-      rows.quiz_questions.push({ room_id, round_id: r.id, id: v.id, number: v.number, text: v.text, answer: v.answer, category: v.category, points: v.points, duration: v.duration, notes: v.notes, sort_order });
+      rows.quiz_questions.push({ room_id, round_id: r.id, id: v.id, number: v.number, text: v.text, answer: v.answer, category: v.category, points: v.points, duration: v.duration, notes: v.notes, image: v.image ?? null, sort_order });
       v.options.forEach((text, option_index) => rows.quiz_question_options.push({ room_id, round_id: r.id, question_id: v.id, option_index, text }));
     });
   });
@@ -83,6 +83,7 @@ export function rowsToQuiz(rows: QuizRows): Quiz {
     const questions: Question[] = ordered(rows.quiz_questions.filter(v => v.round_id === r.id)).map(v => ({
       id: s(v.id), number: n(v.number), text: s(v.text), answer: s(v.answer), category: s(v.category), points: n(v.points), duration: nullableNumber(v.duration), notes: s(v.notes),
       options: rows.quiz_question_options.filter(o => o.round_id === r.id && o.question_id === v.id).sort((a, b) => n(a.option_index) - n(b.option_index)).map(o => s(o.text)),
+      ...(typeof v.image === "string" && v.image ? { image: v.image } : {}),
     }));
     return { id: s(r.id), type: s(r.type) as Round["type"], ...(r.batch_number === null ? {} : { batchNumber: n(r.batch_number) }), ...(r.batch_team === null ? {} : { batchTeam: s(r.batch_team) as Team["id"] }), name: s(r.name), order: n(r.sort_order), questionCount: n(r.question_count), duration: n(r.duration), points: n(r.points), scoringMode: s(r.scoring_mode) as Round["scoringMode"], questions };
   });

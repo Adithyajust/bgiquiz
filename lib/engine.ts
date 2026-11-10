@@ -1,6 +1,6 @@
 export type TeamId = "A" | "B" | "C";
 export type Phase = "ready" | "buzzing" | "review" | "answering" | "paused" | "judged" | "finished";
-export type Question = { id: string; number: number; text: string; answer: string; category: string; options: string[]; points: number; duration: number | null; notes: string };
+export type Question = { id: string; number: number; text: string; answer: string; category: string; options: string[]; points: number; duration: number | null; notes: string; image?: string };
 export type Round = { id: string; type: "reguler" | "rebutan"; batchNumber?: number; batchTeam?: TeamId; name: string; order: number; questionCount: number; duration: number; points: number; scoringMode: "round" | "question"; questions: Question[] };
 export type Team = { id: TeamId; name: string; photo: string; score: number; key: string; participants: string };
 export type Buzz = { id: string; teamId: TeamId; receivedAt: number; elapsed: number };
@@ -72,7 +72,10 @@ export function validateQuestion(input: unknown, fallbackId: string): Question {
   assert(Array.isArray(v.options) && v.options.length <= 6, "Pilihan jawaban tidak valid.");
   const options = v.options.map(o => str(o, "Pilihan jawaban", 400));
   if (options.length) { assert(options.length >= 2, "Sediakan minimal dua pilihan jawaban."); assert(new Set(options).size === options.length, "Pilihan jawaban tidak boleh sama."); assert(options.includes(answer), "Jawaban benar harus sesuai salah satu pilihan."); }
-  return { id: fallbackId, number: int(v.number, "Nomor soal", 1, 100), text, answer, options, category: str(v.category ?? "Pengetahuan umum", "Kategori", 60), points: int(v.points, "Nilai soal", 0, 1000), duration: v.duration === null || v.duration === "" ? null : int(v.duration, "Waktu menjawab", 1, 600), notes: str(v.notes ?? "", "Catatan pembawa acara", 2000, false) };
+  const image = v.image === undefined || v.image === null || v.image === "" ? undefined : str(v.image, "Gambar soal", 300000);
+  assert(!image || options.length === 0, "Gambar hanya dapat digunakan pada jenis Jawaban singkat.");
+  assert(!image || /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(image), "Format gambar soal tidak valid. Gunakan PNG, JPG, atau WebP.");
+  return { id: fallbackId, number: int(v.number, "Nomor soal", 1, 100), text, answer, options, category: str(v.category ?? "Pengetahuan umum", "Kategori", 60), points: int(v.points, "Nilai soal", 0, 1000), duration: v.duration === null || v.duration === "" ? null : int(v.duration, "Waktu menjawab", 1, 600), notes: str(v.notes ?? "", "Catatan pembawa acara", 2000, false), ...(image ? { image } : {}) };
 }
 function ensureRoundReady(r: Round) {
   assert(r.questions.length >= r.questionCount, `Lengkapi ${r.questionCount} soal di bank soal terlebih dahulu. Saat ini tersedia ${r.questions.length} soal.`);
@@ -314,7 +317,7 @@ export function publicQuiz(q: Quiz): Quiz {
     const current = r.id === q.game.roundId && i === q.game.index && !["ready", "finished"].includes(q.game.phase);
     if (!(current && q.game.answerVisible === true && q.game.phase !== "finished")) x.answer = "";
     x.notes = "";
-    if (!current) { x.text = ""; x.options = []; x.category = ""; }
+    if (!current) { x.text = ""; x.options = []; x.category = ""; delete x.image; }
   }));
   safe.results = [];
   return safe;
